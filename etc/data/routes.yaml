@@ -1,0 +1,4 @@
+- from:
+    uri: "kafka:test?brokers=localhost:9092"
+    steps:
+      - to: "log:out"
