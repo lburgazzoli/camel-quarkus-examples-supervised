@@ -19,7 +19,6 @@
         <quarkus.version>2.13.0.Final</quarkus.version>
         <camel-quarkus.version>2.13.0</camel-quarkus.version>
         <camel-k-runtime.version>1.15.0</camel-k-runtime.version>
-        <camel.version>3.18.2</camel.version>
 
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-jar-plugin.version>3.2.0</maven-jar-plugin.version>
@@ -29,13 +28,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.apache.camel</groupId>
-                <artifactId>camel-bom</artifactId>
-                <version>${camel.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-bom</artifactId>
