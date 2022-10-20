@@ -1,9 +1,9 @@
 package example.ext;
 
 import org.apache.camel.CamelContext;
-import org.apache.camel.microprofile.health.CamelMicroProfileHealthCheckRegistry;
+import org.apache.camel.microprofile.health.ConnectorHealthCheckRegistry;
 
-public class ExtHealthRegistry extends CamelMicroProfileHealthCheckRegistry {
+public class ExtHealthRegistry extends ConnectorHealthCheckRegistry {
 
     public ExtHealthRegistry(CamelContext camelContext) {
         super(camelContext);

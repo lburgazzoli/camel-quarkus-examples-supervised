@@ -5,6 +5,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.StartupListener;
+import org.apache.camel.component.kafka.KafkaHealthCheckRepository;
 import org.apache.camel.health.HealthCheck;
 import org.apache.camel.health.HealthCheckRegistry;
 import org.apache.camel.health.HealthCheckRepository;
@@ -23,18 +24,17 @@ import io.smallrye.health.registry.HealthRegistries;
  * {@link HealthCheckRegistry} implementation to register Camel health checks as MicroProfile health checks on SmallRye
  * Health.
  */
-public class CamelMicroProfileHealthCheckRegistry extends DefaultHealthCheckRegistry implements StartupListener {
+public class ConnectorHealthCheckRegistry extends DefaultHealthCheckRegistry implements StartupListener {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CamelMicroProfileHealthCheckRegistry.class);
-    private final Set<HealthCheckRepository> repositories = new CopyOnWriteArraySet<>();
+    private static final Logger LOG = LoggerFactory.getLogger(ConnectorHealthCheckRegistry.class);
 
-    public CamelMicroProfileHealthCheckRegistry() {
-        this(null);
-    }
+    private final Set<HealthCheckRepository> repositories;
 
-    public CamelMicroProfileHealthCheckRegistry(CamelContext camelContext) {
+    public ConnectorHealthCheckRegistry(CamelContext camelContext) {
         super(camelContext);
         super.setId("camel-microprofile-health");
+
+        this.repositories = new CopyOnWriteArraySet<>();
     }
 
     @Override
@@ -114,6 +114,9 @@ public class CamelMicroProfileHealthCheckRegistry extends DefaultHealthCheckRegi
 
     protected void registerRepositoryChecks(HealthCheckRepository repository) {
         if (repository.isEnabled()) {
+
+            LOG.info("Registering {}", repository.getClass().getName());
+
             boolean isAllChecksLiveness = repository.stream().allMatch(HealthCheck::isLiveness);
             boolean isAllChecksReadiness = repository.stream().allMatch(HealthCheck::isReadiness);
 
@@ -132,10 +135,13 @@ public class CamelMicroProfileHealthCheckRegistry extends DefaultHealthCheckRegi
                     healthCheckName = "camel-" + healthCheckName;
                 }
 
-                CamelMicroProfileRepositoryHealthCheck repositoryHealthCheck
-                    = new CamelMicroProfileRepositoryHealthCheck(getCamelContext(), repository, healthCheckName);
+                CamelMicroProfileRepositoryHealthCheck repositoryHealthCheck = new CamelMicroProfileRepositoryHealthCheck(
+                    getCamelContext(), repository, healthCheckName);
 
-                if (repository instanceof RoutesHealthCheckRepository || repository instanceof ConsumersHealthCheckRepository) {
+                if (repository instanceof RoutesHealthCheckRepository
+                    || repository instanceof ConsumersHealthCheckRepository
+                    || repository instanceof KafkaHealthCheckRepository) {
+
                     // Eagerly register routes & consumers HealthCheckRepository since routes may be supervised
                     // and added with an initial delay. E.g repository.stream() may be empty initially but will eventually
                     // return some results
@@ -154,8 +160,8 @@ public class CamelMicroProfileHealthCheckRegistry extends DefaultHealthCheckRegi
     }
 
     protected void registerMicroProfileHealthCheck(HealthCheck camelHealthCheck) {
-        org.eclipse.microprofile.health.HealthCheck microProfileHealthCheck
-            = new CamelMicroProfileHealthCheck(getCamelContext(), camelHealthCheck);
+        org.eclipse.microprofile.health.HealthCheck microProfileHealthCheck = new CamelMicroProfileHealthCheck(
+            getCamelContext(), camelHealthCheck);
 
         if (camelHealthCheck.isReadiness()) {
             getReadinessRegistry().register(camelHealthCheck.getId(), microProfileHealthCheck);
@@ -189,8 +195,10 @@ public class CamelMicroProfileHealthCheckRegistry extends DefaultHealthCheckRegi
     }
 
     protected boolean canRegister(HealthCheckRepository repository) {
-        return repository instanceof RoutesHealthCheckRepository || repository instanceof ConsumersHealthCheckRepository
-            || repository.stream().findAny().isPresent();
+        return repository.stream().findAny().isPresent()
+            || repository instanceof RoutesHealthCheckRepository
+            || repository instanceof ConsumersHealthCheckRepository
+            || repository instanceof KafkaHealthCheckRepository;
     }
 
     protected HealthRegistry getLivenessRegistry() {
